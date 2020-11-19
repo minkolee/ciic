@@ -11,7 +11,6 @@ def collect_eid(worksheet) -> list:
     result.sort()
     return result
 
-
 def getEIDData(eid_set, max_row, max_column, worksheet) -> dict:
     result = {}
 
