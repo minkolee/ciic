@@ -12,21 +12,29 @@ def collect_eid(worksheet) -> list:
     return result
 
 
-def getEIDData(eid_set, worksheet) -> dict:
+def getEIDData(eid_set, max_row, max_column, worksheet) -> dict:
     result = {}
 
     for each_eid in eid_set:
         result[each_eid] = {}
 
-    # 对于每一个EID,组装一个字典包含所有的列数和对应的数据
-    for each_eid in eid_set:
-        # 先扫描到EID对应的行
-        for i in range(start_row, end_row + 1):
-            if ws.cell(row=i, column=eid_column).value.strip() == each_eid:
-                # 组装一个字典
-                for j in range(5, worksheet.max_column + 1):
-                    if ws.cell(row=i, column=j).value:
-                        result[each_eid][j] = ws.cell(row=i, column=j).value
+    # 对于每一行
+    for i in range(2,max_row+1):
+        # 对于每一列, 先获取eid，然后组装字典
+        eid = worksheet.cell(row=i, column=2).value.strip()
+
+        for j in range(5, max_column+1):
+            # 如果序号存在于字典中，就更新，否则新增
+            cell_value = worksheet.cell(row=i,column=j).value
+
+            if cell_value:
+                if j not in result[eid].keys():
+                    print('处理第{}行\tEID：{}\t新增\t新值：{}'.format(i,eid, cell_value))
+                    result[eid][j] = cell_value
+                else:
+                    old_value = result[eid][j]
+                    result[eid][j] = cell_value+ result[eid][j]
+                    print('处理第{}行\tEID：{}\t叠加\t旧值：{}\t新值：{}'.format(i,eid, old_value,result[eid][j]))
 
     return result
 
@@ -60,11 +68,17 @@ if __name__ == "__main__":
         print("参数错误，第一个参数为要处理的文件，第二个参数为要生成的文件名称，可以忽略第二个参数")
         sys.exit(0)
 
-    wb = openpyxl.open(sys.argv[1])
+    wb = None
+    try:
+        wb = openpyxl.open(sys.argv[1])
+
+    except FileNotFoundError:
+        print("没有找到文件，请检查文件名是否正确")
+        sys.exit(1)
 
     ws = wb.active
 
-    print("读取表格中....")
+    print("读取表格数据......")
     # 数据开始的行数
     start_row = 2
     print("默认数据从第 {} 行开始处理".format(start_row))
@@ -73,16 +87,16 @@ if __name__ == "__main__":
     end_row = ws.max_row
     print("表格有效行数为：{} 行".format(end_row))
 
-
     # EID所在列数
     eid_column = 2
     print("默认EID所在列数：{}".format(eid_column))
 
     # 最大列数
-    print("表格最大列数为：{}".format(ws.max_column))
 
-    print("上述基础参数错误请联系开发者, 按回车键开始处理数据。。。")
-    input()
+    end_column = ws.max_column
+    print("表格最大列数为：{}".format(end_column))
+
+    print("上述基础参数错误请联系开发者，开始处理数据......")
 
     # 生成EID列表
     print("正在生成不重复的EID清单")
@@ -90,10 +104,10 @@ if __name__ == "__main__":
     print("不重复的EID是：{}".format(eid_list))
 
     print("正在生成不重复的EID与对应汇总数据")
-    eid_data = getEIDData(eid_list, ws)
-    print("EID汇总数据为：{}".format(eid_data))
+    eid_data = getEIDData(eid_list, end_row,end_column, ws)
+    print("汇总数据为：{}".format(eid_data))
 
-    print("准备写入数据")
+    print("开始写入数据")
     if command_length==2:
         print("未输入文件名，默认为result.xlsx")
 
